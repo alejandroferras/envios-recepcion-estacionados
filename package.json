@@ -1,11 +1,11 @@
 {
   "name": "estacionados-secure",
-  "version": "48.0.0",
+  "version": "48.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "test": "node tests/security.test.mjs && node tests/frontend.test.mjs",
+    "test": "node tests/security.test.mjs && node tests/frontend.test.mjs && node tests/admin-users.test.mjs",
     "deploy": "wrangler deploy"
   },
   "devDependencies": {

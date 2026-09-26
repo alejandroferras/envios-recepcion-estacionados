@@ -38,7 +38,8 @@ app=app.replace("'Identificacion'","'Identificacion protegida'").replace("s.reci
 const detailEnd="$('detail').scrollIntoView({behavior:'smooth'})}";
 if(!app.includes(detailEnd))throw new Error('Detail insertion point missing');
 app=app.replace(detailEnd,"$('detail').scrollIntoView({behavior:'smooth'});if(['RECEPCION','ADMIN'].includes(me.role)&&s.status==='ENTREGADO'){const box=document.createElement('div');box.className='actions';const b=document.createElement('button');b.className='btn btn2';b.textContent='Consultar identificación';b.onclick=()=>showIdentity(s.id);box.append(b);const f=document.createElement('button');f.className='btn btn2';f.textContent='Ver firma digital';f.onclick=()=>showDigitalSignature(s.id);box.append(f);$('detail').append(box)}}");
-html=html.replace('<script src="app.js?v=47.2"></script>','<script src="app.js?v=48.0"></script>');
+html=html.replace('<script src="app.js?v=47.2"></script>','<script src="app.js?v=48.1"></script>');
+html=html.replace('recogida, DNI, observaciones','recogida, observaciones');
 html=html.replace('id="deliveryid" class="field" autocomplete="off" placeholder="Opcional"','id="deliveryid" class="field" autocomplete="off" maxlength="32" placeholder="Obligatorio"');
 html=html.replace('id="deliveryname" class="field" autocomplete="off"','id="deliveryname" class="field" autocomplete="off" maxlength="300"');
 html=html.replace('<button id="deliveryconfirm"', '<button id="deliveryconfirm"');
@@ -46,9 +47,9 @@ const marker='<button id="deliveryconfirm"';
 // Insert before the action row, using the observed DNI input as the stable anchor.
 const dniMatch=html.match(/<input id="deliveryid"[^>]*>/);if(!dniMatch)throw new Error('Delivery input missing');
 html=html.replace(dniMatch[0],dniMatch[0]+'<label class="formlabel" for="signaturecanvas">Firma de la persona que recoge</label><canvas id="signaturecanvas" width="600" height="220" aria-label="Firma de quien recoge"></canvas><button type="button" class="btn btn2" onclick="resetSignature()">Borrar firma</button><p class="fieldhint">La identificación se guarda cifrada. Firma vinculada exclusivamente a esta entrega.</p>');
-html=html.replace('</style>','\n#signaturecanvas{width:100%;height:170px;border:1px solid #cbd5e1;border-radius:10px;background:white;touch-action:none;margin:8px 0}.releasebadge{font-size:11px;color:#64748b}\n</style>');
-html=html.replace('</body>','<div class="releasebadge" style="text-align:center;padding:10px">Versión 48 · Firma digital · Acceso protegido</div></body>');
+html=html.replace('</style>','\n#signaturecanvas{width:100%;height:170px;border:1px solid #cbd5e1;border-radius:10px;background:white;touch-action:none;margin:8px 0}.releasebadge{font-size:11px;color:#64748b}#shipments td:last-child .actions{width:280px;min-width:280px;align-items:center}#shipments td{vertical-align:middle}\n</style>');
+html=html.replace('</body>','<div class="releasebadge" style="text-align:center;padding:10px">Versión 48.1 · Firma digital · Acceso protegido</div></body>');
 app+='\n'+await readFile('scripts/secure-features.js','utf8');
 app+="\nsb.auth.getSession().then(({data})=>{if(data.session)loadApp(data.session.user)});\n";
 await writeFile('public/app.js',app);await writeFile('public/index.html',html);
-console.log('Version 48 generated from original ZIP.');
+console.log('Version 48.1 generated from original ZIP.');

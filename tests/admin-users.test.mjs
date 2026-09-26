@@ -1,0 +1,18 @@
+import {readFile} from 'node:fs/promises';
+import {stripTypeScriptTypes} from 'node:module';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+const origin='https://envios-recepcion-estacionados.alejandro-ferras-cttexpress.workers.dev';
+const source=await readFile(new URL('../supabase/functions/admin-users/index.ts',import.meta.url),'utf8');
+let handler,role='ADMIN',active=true,authenticated=true,listCalls=0;
+const admin={from(){return{select(){return this},eq(){return this},single:async()=>({data:{id:'test',role,active}}),order:async()=>({data:[{id:'test',role,active,full_name:'Test'}]})}},auth:{admin:{listUsers:async()=>{listCalls++;return{data:{users:[{id:'test',email:'test@example.invalid'}]}}}}}};
+const caller={auth:{getUser:async()=>({data:{user:authenticated?{id:'test'}:null}})}};
+vm.runInNewContext(stripTypeScriptTypes(source.replace(/^import[^\n]*\n/,'')),{Request,Response,console,Deno:{serve:fn=>handler=fn,env:{get:k=>k==='SUPABASE_SERVICE_ROLE_KEY'?'service':'public'}},createClient:(_url,key)=>key==='service'?admin:caller});
+const request=(method='POST',site=origin)=>new Request('https://example.invalid/admin-users',{method,headers:{Origin:site,Authorization:'Bearer test','Content-Type':'application/json'},...(method==='POST'?{body:JSON.stringify({action:'list'})}:{})});
+const preflight=await handler(request('OPTIONS'));assert.equal(preflight.headers.get('access-control-allow-origin'),origin);console.log('PASS Cloudflare preflight permits the current production origin');
+const forbidden=await handler(request('POST','https://untrusted.example'));assert.equal(forbidden.status,403);assert.equal(forbidden.headers.get('access-control-allow-origin'),null);console.log('PASS unapproved origin rejected');
+authenticated=false;const anonymous=await handler(request());assert.equal(anonymous.status,401);assert.equal(listCalls,0);assert.equal(anonymous.headers.get('access-control-allow-origin'),origin);console.log('PASS invalid authentication rejected with readable CORS error');
+authenticated=true;role='RECEPCION';assert.equal((await handler(request())).status,403);assert.equal(listCalls,0);console.log('PASS non-admin cannot list users');
+role='ADMIN';active=false;assert.equal((await handler(request())).status,403);assert.equal(listCalls,0);console.log('PASS inactive administrator denied');
+active=true;const response=await handler(request());assert.equal(response.status,200);assert.equal((await response.json()).data[0].email,'test@example.invalid');assert.equal(listCalls,1);console.log('PASS active administrator can list users');
+console.log('6 administration regression tests passed');

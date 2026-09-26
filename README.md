@@ -1,4 +1,6 @@
-# Estacionados · versión 48
+# Estacionados · versión 48.1
+
+Corrección 48.1: la función admin-users admite el dominio de producción Cloudflare en su lista CORS. Conserva la comprobación de JWT, usuario activo y rol ADMIN. La columna de acciones del buscador tiene anchura suficiente para evitar una fila de más de 250 píxeles. Se incluye el código de la función y seis pruebas de regresión.
 
 Producción: https://envios-recepcion-estacionados.alejandro-ferras-cttexpress.workers.dev/
 
