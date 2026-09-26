@@ -1,0 +1,17 @@
+import vm from 'node:vm';
+import {readFile} from 'node:fs/promises';
+import assert from 'node:assert/strict';
+const app=await readFile(new URL('../public/app.js',import.meta.url),'utf8');
+const fn=name=>{const start=app.indexOf('async function '+name+'('), end=app.indexOf('\n}',start);const line=app.slice(start,app.indexOf('\n',start));return line.endsWith('}')?line:app.slice(start,end+2);};
+const nodes=new Map();const $=id=>{if(!nodes.has(id))nodes.set(id,{value:'',textContent:'',disabled:false});return nodes.get(id)};
+let calls=0,rendered=0;
+const stock=Array.from({length:2359},(_,i)=>({tracking:String(i).padStart(6,'0')}));
+const ctx=vm.createContext({$,console,stockLoaded:false,stockRows:[],latestStockImport:null,renderStock:()=>rendered++,sb:{from(table){return{select(){return this},order(){return this},limit(){return this},maybeSingle:async()=>({data:{id:1}}),range:async(a,b)=>{calls++;return{data:stock.slice(a,b+1)}}}}}});
+vm.runInContext(fn('loadStock'),ctx);await ctx.loadStock();assert.equal(ctx.stockRows.length,2359);assert.equal(calls,3);assert.equal(rendered,1);console.log('PASS inventory pagination preserves 2359 rows');
+await ctx.loadStock();assert.equal(calls,3);console.log('PASS cached inventory avoids repeated download');
+const notices=[];Object.assign(ctx,{shipments:[{id:'one',tracking:'TEST'}],deliveryShipmentId:'one',signatureMarks:0,showToast:(...args)=>notices.push(args),closeDelivery(){throw Error('unexpected close')}});
+$('deliveryname').value='Prueba';$('deliveryid').value='TEST-12345';vm.runInContext(fn('confirmDelivery'),ctx);await ctx.confirmDelivery();assert.equal(notices.at(-1)[0],'Falta la firma');console.log('PASS unsigned delivery never calls backend');
+$('deliveryid').value='';await ctx.confirmDelivery();assert.equal(notices.at(-1)[0],'Faltan datos');console.log('PASS missing identity never calls backend');
+Object.assign(ctx,{refreshInProgress:false,ensureAccountActive:async()=>false});vm.runInContext(fn('refresh'),ctx);await ctx.refresh();assert.equal(ctx.refreshInProgress,false);console.log('PASS permissions failure stops refresh and releases lock');
+assert.equal(app.includes("rpc('get_delivery_identities'"),false);console.log('PASS no bulk plaintext identity download');
+console.log('6 frontend tests passed');

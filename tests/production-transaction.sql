@@ -1,0 +1,21 @@
+BEGIN;
+DO $$ DECLARE u uuid; s uuid; t timestamptz; p text; result jsonb;
+BEGIN
+ SELECT id INTO u FROM public.profiles WHERE role='ADMIN' AND active LIMIT 1;
+ IF u IS NULL THEN RAISE EXCEPTION 'Missing admin for transactional test'; END IF;
+ PERFORM set_config('request.jwt.claim.sub',u::text,true);
+ INSERT INTO public.shipments(tracking,customer_name,package_location,status,requested_by) VALUES ('TEST-ROLLBACK-'||gen_random_uuid()::text,'Prueba sin persistencia','TEST','SOLICITADO',u) RETURNING id INTO s;
+ UPDATE public.shipments SET status='LOCALIZANDO' WHERE id=s;
+ UPDATE public.shipments SET status='PREPARADO' WHERE id=s;
+ UPDATE public.shipments SET status='PENDIENTE_RECEPCION' WHERE id=s;
+ UPDATE public.shipments SET status='EN_RECEPCION' WHERE id=s RETURNING updated_at INTO t;
+ p:=s::text||'/transaction-test.webp';
+ INSERT INTO storage.objects(bucket_id,name,owner_id,metadata) VALUES ('signatures',p,u::text,'{"mimetype":"image/webp","size":3000}');
+ result:=public.complete_delivery_secure(s,'Prueba de sistema','TEST-12345',p,t);
+ IF result->>'ok'<>'true' OR (SELECT status FROM public.shipments WHERE id=s)<>'ENTREGADO' THEN RAISE EXCEPTION 'Delivery failed'; END IF;
+ IF public.get_delivery_identity(s)<>'TEST-12345' THEN RAISE EXCEPTION 'Decryption failed'; END IF;
+ IF EXISTS(SELECT 1 FROM public.events WHERE shipment_id=s AND detail LIKE '%TEST-12345%') THEN RAISE EXCEPTION 'Identity leaked into audit'; END IF;
+ result:=public.complete_delivery_secure(s,'Prueba de sistema','TEST-12345',p,t);
+ IF result->>'already_saved'<>'true' THEN RAISE EXCEPTION 'Retry failed'; END IF;
+END $$;
+ROLLBACK;

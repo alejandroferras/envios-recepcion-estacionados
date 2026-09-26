@@ -1,0 +1,15 @@
+{
+  "name": "estacionados-secure",
+  "version": "48.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node tests/security.test.mjs && node tests/frontend.test.mjs",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.8",
+    "wrangler": "4.140.0"
+  }
+}

@@ -1,0 +1,6 @@
+{
+ "name":"envios-recepcion-estacionados",
+ "account_id":"4da7646bffc48f0f522cfcd1081d8203",
+ "compatibility_date":"2026-09-26",
+ "assets":{"directory":"./public"}
+}
